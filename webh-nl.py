@@ -6,6 +6,9 @@ import glob, os
 webh_config_path = '/home/catalin/Desktop/etc/www'
 site_name = 'fqdn.tld'
 
+print os.popen("echo $(pwd)").read()
+exit(0)
+
 os.chdir(webh_config_path)
 print ''
 for file in glob.glob("fqdn-*.conf"):
