@@ -31,14 +31,17 @@ site_menu_options = [
 	'delete_site()',
 ]
 
-# enable a site: move /etc/www/fqdn*.conf.disabled to /etc/www/fqdn*.conf, restart services
+# enable_site()
+# actions:
+# move /etc/www/site_name*.conf.disabled to /etc/www/site_name*.conf
+# restart_servers()
 def enable_site():
 	print 50 * "-"
 	os.chdir(sites_config_path)
 	for file in glob.glob(site_name+"-*.conf.disabled"):
-		os.rename(file,file.replace('.disabled',''))
 		conf_available = str(file).split(site_name)[1].split('.disabled')[0]
 		print 'Enabling '+fcolor.light_green+site_name+fcolor.default+conf_available
+		os.rename(file,file.replace('.disabled',''))
 	restart_servers()
 	print fcolor.light_green+site_name+fcolor.default+' is now enabled'
 	print fcolor.light_yellow+'Don\'t forget that you can fine tune server for this site\nusing the above configuration files (located at /etc/www).'+fcolor.default
@@ -240,9 +243,3 @@ while menuLoop:
 		choice-=1
 		func = main_menu_options[choice][1]
 		eval(func)
-
-
-
-
-
-
