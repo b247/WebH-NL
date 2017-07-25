@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import glob, os, signal, sys, shutil, subprocess
+import glob, os, sys, shutil, subprocess
 
 #declaring paths
 sites_config_path = '/etc/www'
@@ -16,20 +16,93 @@ info = """
 # Author: b247
 # Project details: https://www.b247.eu.org/
 --------------------------------------------------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\\
+                ||----w |
+                ||     ||
 """
 
-#main menu
-main_menu_options = [
-	('Manage sites (enable/disable/delete)','manage_sites()'),
-	('New site','new_site()'),
-	('Exit','exit_menu()'),
-]
-#site_menu
-site_menu_options = [
-	'enable_site()',
-	'disable_site()',
-	'delete_site()',
-]
+##################################################
+# menus
+##################################################
+class Menu:
+	main_menu_options = [
+		('New site','new()'),
+		('Manage sites (enable/disable/delete)','site()'),
+		('Exit','exit()'),
+	]
+	site_menu_options = [
+		'enable_site()',
+		'disable_site()',
+		'delete_site()',
+	]
+	
+	# the start menu	
+	def start(self):
+		print color.light_yellow+50 * "-"+color.default
+		for index, item in enumerate(self.main_menu_options):
+			print str(index+1)+'. '+item[0]
+		print color.light_yellow+50 * "-"+color.default
+		valid_selection = False
+		while valid_selection != True:
+			try:
+				self.selection = input(">> [1-"+str(len(self.main_menu_options))+"]: ")
+				valid_selection = 1 <= self.selection <= len(self.main_menu_options)
+				if not valid_selection:
+					raise Exception() 
+			except KeyboardInterrupt:
+				Manage().exit()
+			except :
+				print 'Invalid option, try again'
+		try :
+			func = 'Manage().'+self.main_menu_options[self.selection-1][1]
+			eval(func)
+		except KeyboardInterrupt:
+				Manage().exit()
+		except Exception as e:
+			print 'Ooups, the option you have selected is not working or not yet implemented'
+			print e
+			self.start()
+
+	
+##################################################
+# main actions (create/enable/disable/delete site)
+##################################################
+class Manage:
+	# exit
+	def exit(self):
+		print
+		sys.exit(0)
+		
+	# new()
+	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
+	def new(self):
+		print 50 * "-"
+		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
+		site_name = raw_input(">> [FQDN]: ")
+		print 'Creating the config files for %s ...' %(self.site_name)
+		print 'Test some things and exit'
+		print subprocess().check_output('ls')
+		exit(0)
+		#for file in glob.glob("files/vhosts/fqdn-*.conf"):
+	#		server_type_ext = file.split('fqdn')[1]
+	#		copyfile(file, webh_config_path+'/'+site_name+server_type_ext)
+	#		os.popen("sed -i 's/{SITE_NAME}/"+site_name+"/g' "+webh_config_path+'/'+site_name+server_type_ext)
+		
+		print 'Creating the storage tree for %s ...' %(site_name)
+		
+		print 'dodo, chown root:www-data site_name ...'
+		print 'dodo, chmod 0770 fqdn ...'
+		print 'dodo, create user site_name_clean'
+		#	create_system_user(), add www-data as primary group???, for sftp editing capabilities?
+		print 'dodo, set www-data as primary group for user site_name_clean'
+		print 'dodo, get nginx,apache,php configs from github'
+		print 'dodo, replace default.tld with site_name and www-default-tld with site_name_clean, inside confs'
+	
+		restart_servers()
+		print color.light_green+site_name+color.default+' is now created and enabled, waiting for your scripts to be executed '
+		print
 
 # enable_site()
 # actions:
@@ -40,11 +113,11 @@ def enable_site():
 	os.chdir(sites_config_path)
 	for file in glob.glob(site_name+"-*.conf.disabled"):
 		conf_available = str(file).split(site_name)[1].split('.disabled')[0]
-		print 'Enabling '+fcolor.light_green+site_name+fcolor.default+conf_available
+		print 'Enabling '+color.light_green+site_name+color.default+conf_available
 		os.rename(file,file.replace('.disabled',''))
 	restart_servers()
-	print fcolor.light_green+site_name+fcolor.default+' is now enabled'
-	print fcolor.light_yellow+'Don\'t forget that you can fine tune server for this site\nusing the above configuration files (located at /etc/www).'+fcolor.default
+	print color.light_green+site_name+color.default+' is now enabled'
+	print color.light_yellow+'Don\'t forget that you can fine tune server for this site\nusing the above configuration files (located at /etc/www).'+color.default
 	print
 
 # disable a site: move /etc/www/fqdn*.conf to /etc/www/fqdn*.conf.disabled, restart services
@@ -54,9 +127,9 @@ def disable_site():
 	for file in glob.glob(site_name+"-*.conf"):
 		os.rename(file,file.replace('.conf','.conf.disabled'))
 		conf_available = str(file).split(site_name)[1]
-		print 'Disabling '+fcolor.light_red+site_name+fcolor.default+conf_available
+		print 'Disabling '+color.light_red+site_name+color.default+conf_available
 	restart_servers()
-	print fcolor.light_red+site_name+fcolor.default+' is now disabled'
+	print color.light_red+site_name+color.default+' is now disabled'
 	print
 
 #delete a site: remove /etc/www/fqdn*, remove /var/www/fqdn, remove site_name_clean user, restart services
@@ -66,47 +139,19 @@ def delete_site():
 	for file in glob.glob(site_name+"*"):
 		try:
 			os.remove(file)
-			print 'Removing '+fcolor.light_red+file+fcolor.default
+			print 'Removing '+color.light_red+file+color.default
 		except OSError:
 			pass
-	print 'Removing '+fcolor.light_red+sites_storage_path+'/'+site_name+fcolor.default
+	print 'Removing '+color.light_red+sites_storage_path+'/'+site_name+color.default
 	try:	
 		shutil.rmtree(sites_storage_path+'/'+site_name)
 	except OSError:
 		pass 
 	delete_system_user()	
 	restart_servers()
-	print fcolor.light_red+site_name+fcolor.default+' is now deleted'
+	print color.light_red+site_name+color.default+' is now deleted'
 	print
 
-#create a site: create /etc/www/fqdn*, create /var/www/fqdn, create site_name_clean system user, restart services
-def new_site():
-	print 50 * "-"
-	print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
-	global site_name
-	site_name = raw_input(">> [FQDN]: ")
-	print 'Creating the config files for %s ...' %(site_name)
-	print 'Test some things and exit'
-	print subprocess.check_output('ls')
-	exit(0)
-	#for file in glob.glob("files/vhosts/fqdn-*.conf"):
-#		server_type_ext = file.split('fqdn')[1]
-#		copyfile(file, webh_config_path+'/'+site_name+server_type_ext)
-#		os.popen("sed -i 's/{SITE_NAME}/"+site_name+"/g' "+webh_config_path+'/'+site_name+server_type_ext)
-	
-	print 'Creating the storage tree for %s ...' %(site_name)
-	
-	print 'dodo, chown root:www-data site_name ...'
-	print 'dodo, chmod 0770 fqdn ...'
-	print 'dodo, create user site_name_clean'
-	#	create_system_user(), add www-data as primary group???, for sftp editing capabilities?
-	print 'dodo, set www-data as primary group for user site_name_clean'
-	print 'dodo, get nginx,apache,php configs from github'
-	print 'dodo, replace default.tld with site_name and www-default-tld with site_name_clean, inside confs'
-
-	restart_servers()
-	print fcolor.light_green+site_name+fcolor.default+' is now created and enabled, waiting for your scripts to be executed '
-	print
 
 # restart webservers (apache/nginx/php-fpm)
 def restart_servers():
@@ -118,25 +163,20 @@ def restart_servers():
 	print 'Restarting php-fpm ...'
 	print os.popen("systemctl reload php7.0-fpm").read()
 	
-# the start menu	
-def main_menu():
-	print fcolor.light_yellow+50 * "-"+fcolor.default
-	for index, item in enumerate(main_menu_options):
-		print str(index+1)+'. '+item[0]
-	print fcolor.light_yellow+50 * "-"+fcolor.default
+
 
 # list of selectable available sites  	
 def manage_sites():
 	available_sites()
 	global site_name
-	print fcolor.light_blue+'\n'+35*'-'+'AVAILABLE SITES'
+	print color.light_blue+'\n'+35*'-'+'AVAILABLE SITES'
 	
 	for index,site in enumerate(all_sites):
 		if site in enabled_sites:
-			print fcolor.light_green+str(index+1)+'. '+site+(' '+(39-len(site))*'-')+'ENABLED'+fcolor.default
+			print color.light_green+str(index+1)+'. '+site+(' '+(39-len(site))*'-')+'ENABLED'+color.default
 		else:
-			print fcolor.light_red+str(index+1)+'. '+site+(' '+(38-len(site))*'-')+'DISABLED'+fcolor.default
-	print fcolor.light_blue+50*'-'+fcolor.default
+			print color.light_red+str(index+1)+'. '+site+(' '+(38-len(site))*'-')+'DISABLED'+color.default
+	print color.light_blue+50*'-'+color.default
 	selected_site = raw_input(">> [1-"+str(total_available_sites)+"]: ")
 	
 	try:
@@ -147,22 +187,21 @@ def manage_sites():
 	if selected_site <= total_available_sites:
 		site_name = all_sites[selected_site-1]
 		if site_name in disabled_sites:
-			print fcolor.light_red+site_name+fcolor.default
+			print color.light_red+site_name+color.default
 			action = raw_input(">> [enable/delete]:")
 			if action == 'enable':
 				eval(site_menu_options[0])
 			elif action == 'delete':
 				eval(site_menu_options[2])
 		else:
-			print fcolor.light_green+site_name+fcolor.default
+			print color.light_green+site_name+color.default
 			action = raw_input(">> [disable/delete]:")
 			if action == 'disable':
 				eval(site_menu_options[1])
 			elif action == 'delete':
 				eval(site_menu_options[2])
 
-def exit_menu():
-	exit('Have a nice day')
+
 	
 	
 # scan /etc/www for sites configs	
@@ -188,21 +227,18 @@ def available_sites():
 
 # inform admin about paths used and available sites
 def paths():
-	print fcolor.default+'Setting the helper paths ...\n'+fcolor.default+\
-	'sites_config_path: '+fcolor.blue+sites_config_path+fcolor.default+'\n'\
-	'sites_storage_path: '+fcolor.blue+sites_storage_path+fcolor.default
+	print color.default+'Setting the helper paths ...\n'+color.default+\
+	'sites_config_path: '+color.blue+sites_config_path+color.default+'\n'\
+	'sites_storage_path: '+color.blue+sites_storage_path+color.default
 	print 'Scanning for available/enabled/disabled sites ...'
-	print 'Found '+fcolor.light_green+str(total_enabled_sites)+fcolor.default+' enabled sites, '+fcolor.light_red+str(total_disabled_sites)+fcolor.default+' disabled sites, '+str(total_available_sites)+' total available sites'
+	print 'Found '+color.light_green+str(total_enabled_sites)+color.default+' enabled sites, '+color.light_red+str(total_disabled_sites)+color.default+' disabled sites, '+str(total_available_sites)+' total available sites'
 	print
 
-## other helpers
-#Ctrl+C helper
-def signal_handler(signal, frame):
-	print
-	sys.exit(0)
-signal.signal(signal.SIGINT, signal_handler)
-#color helper
-class fcolor:
+##################################################
+# internal helpers
+##################################################
+# shell colors
+class Color:
 	default = '\033[0m'
 	white = '\033[1;37m'
 	light_white = '\033[0;37m'
@@ -215,24 +251,43 @@ class fcolor:
 	yellow = '\033[1;33m'
 	light_yellow = '\033[0;33m'
 	magenta = '\033[1;35m'
-def site_name_clean_func():
-	global site_name_clean
-	site_name_clean = 'www-'+site_name.replace('.','-')	
-def create_system_user():
-	site_name_clean_func()
-	print 'Creating system user '+site_name_clean+' ...'
-	print os.popen("useradd -r "+site_name_clean).read()
-def delete_system_user():
-	site_name_clean_func()
-	print 'Removing system user '+site_name_clean+' ...'
-	print os.popen("userdel "+site_name_clean).read()
+color = Color()
 	
-#main()
-print fcolor.light_yellow + info + fcolor.default
+class tools:
+	def site_name_clean_func():
+		global site_name_clean
+		site_name_clean = 'www-'+site_name.replace('.','-')	
+	def create_system_user():
+		site_name_clean_func()
+		print 'Creating system user '+site_name_clean+' ...'
+		print os.popen("useradd -r "+site_name_clean).read()
+	def delete_system_user():
+		site_name_clean_func()
+		print 'Removing system user '+site_name_clean+' ...'
+		print os.popen("userdel "+site_name_clean).read()
+	
+
+
+##################################################
+# main
+##################################################
+menu = Menu()
+
+print color.light_yellow + info + color.default
+menu.start()
+
+
+exit(0)
+
+
+
+
+# dodo
+print color.light_yellow + info + color.default
 available_sites()	
 paths()
 while menuLoop:
-	main_menu()
+	start()
 	choice = raw_input(">> [1-"+str(len(main_menu_options))+"]: ")
 	try:
 		choice = int(choice)
