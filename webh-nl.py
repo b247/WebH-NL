@@ -1,12 +1,6 @@
 #!/usr/bin/python
 import glob, os, sys, shutil, subprocess
 
-#declaring paths
-sites_config_path = '/etc/www'
-sites_storage_path = '/var/www'
-
-menuLoop = True
-
 info = """
 --------------------------------------------------------
 # WebH-NL virtual hosts helper
@@ -70,6 +64,10 @@ class Menu:
 # main actions (create/enable/disable/delete site)
 ##################################################
 class Manage:
+	#server paths
+	sites_config_path = '/etc/www/'
+	sites_storage_path = '/var/www/'
+	
 	# exit
 	def exit(self):
 		print
@@ -78,17 +76,17 @@ class Manage:
 	# new()
 	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
 	def new(self):
-		print 50 * "-"
+		print color.light_yellow+50 * "-"+color.default
 		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
-		site_name = raw_input(">> [FQDN]: ")
+		self.site_name = raw_input(">> [FQDN]: ")
+		print color.light_yellow+50 * "-"+color.default
 		print 'Creating the config files for %s ...' %(self.site_name)
-		print 'Test some things and exit'
-		print subprocess().check_output('ls')
-		exit(0)
-		#for file in glob.glob("files/vhosts/fqdn-*.conf"):
-	#		server_type_ext = file.split('fqdn')[1]
-	#		copyfile(file, webh_config_path+'/'+site_name+server_type_ext)
-	#		os.popen("sed -i 's/{SITE_NAME}/"+site_name+"/g' "+webh_config_path+'/'+site_name+server_type_ext)
+		for file in glob.glob("files/vhosts/fqdn-*.conf"):
+			self.server_type_ext = file.split('fqdn')[1]
+			shutil.copyfile(file, self.sites_config_path+self.site_name+self.server_type_ext)
+			os.popen("sed -i 's/{SITE_NAME}/"+self.site_name+"/g' "+self.sites_config_path+self.site_name+self.server_type_ext)
+		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*.conf'])
+		exit(0)		
 		
 		print 'Creating the storage tree for %s ...' %(site_name)
 		
