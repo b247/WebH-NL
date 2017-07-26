@@ -79,13 +79,28 @@ class Manage:
 		print color.light_yellow+50 * "-"+color.default
 		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
 		self.site_name = raw_input(">> [FQDN]: ")
+		self.site_name_have_www = self.site_name.split('www.')[0] == ''
+		if self.site_name_have_www:
+			self.site_name = self.site_name[4:]
+		self.site_user = 'www-'+self.site_name.replace('.','-')
+		
 		print color.light_yellow+50 * "-"+color.default
+		print 'Creating the system user for %s ...' %(self.site_name)
+		print color.light_yellow
+		try:
+			subprocess.check_call(['useradd','-r',self.site_user])
+		except :
+			pass
+		print os.popen('getent group | grep '+self.site_user).read()+color.default		
+		
 		print 'Creating the config files for %s ...' %(self.site_name)
 		for file in glob.glob("files/vhosts/fqdn-*.conf"):
 			self.server_type_ext = file.split('fqdn')[1]
 			shutil.copyfile(file, self.sites_config_path+self.site_name+self.server_type_ext)
-			os.popen("sed -i 's/{SITE_NAME}/"+self.site_name+"/g' "+self.sites_config_path+self.site_name+self.server_type_ext)
+			os.popen("sed -i 's/{SITE_NAME}/"+self.site_name+"/g;s/{SITE_USER}/"+self.site_user+"/g' "+self.sites_config_path+self.site_name+self.server_type_ext)
+		print color.light_yellow		
 		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*.conf'])
+		print color.default
 		exit(0)		
 		
 		print 'Creating the storage tree for %s ...' %(site_name)
