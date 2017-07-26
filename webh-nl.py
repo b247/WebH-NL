@@ -72,6 +72,14 @@ class Manage:
 	def exit(self):
 		print
 		sys.exit(0)
+	# restart webservers (apache/nginx/php-fpm)
+	def restart_servers(self):
+		print 'Reloading nginx, apache2 and php-fpm servers ...'+color.light_yellow
+		subprocess.call(['systemctl','reload','nginx'])
+		subprocess.call(['systemctl','reload','apache2'])
+		subprocess.call(['systemctl','reload','php7.0-fpm'])
+		print color.default+'\nDone'
+		Menu().start()
 		
 	# new()
 	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
@@ -85,37 +93,34 @@ class Manage:
 		self.site_user = 'www-'+self.site_name.replace('.','-')
 		
 		print color.light_yellow+50 * "-"+color.default
-		print 'Creating the system user for %s ...' %(self.site_name)
-		print color.light_yellow
+		print 'Creating the system user for '+self.site_name+' ...'+color.light_yellow
 		try:
 			subprocess.check_call(['useradd','-r',self.site_user])
+			subprocess.check_call(['usermod','-G','www-data',self.site_user])
+			subprocess.check_call(['usermod','-g','www-data',self.site_user])
 		except :
 			pass
 		print os.popen('getent group | grep '+self.site_user).read()+color.default		
 		
-		print 'Creating the config files for %s ...' %(self.site_name)
+		print 'Creating the config files for '+self.site_name+' ...'+color.light_yellow
 		for file in glob.glob("files/vhosts/fqdn-*.conf"):
 			self.server_type_ext = file.split('fqdn')[1]
 			shutil.copyfile(file, self.sites_config_path+self.site_name+self.server_type_ext)
 			os.popen("sed -i 's/{SITE_NAME}/"+self.site_name+"/g;s/{SITE_USER}/"+self.site_user+"/g' "+self.sites_config_path+self.site_name+self.server_type_ext)
-		print color.light_yellow		
 		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*.conf'])
 		print color.default
-		print 'Creating the storage tree for %s ...' %(site_name)
 		
-		exit(0)
+		print 'Creating the storage tree for '+self.site_name+' ...'+color.light_yellow
+		try:
+			os.makedirs(self.sites_storage_path+self.site_name+'/public',0770)
+			os.makedirs(self.sites_storage_path+self.site_name+'/logs',0770)
+		except Exception as e:
+			pass
+		subprocess.call(['chown','-R','root:www-data',self.sites_storage_path+self.site_name])	
+		subprocess.call(['find','/var/www/'+self.site_name])
+		print color.default
+		self.restart_servers()
 		
-		print 'dodo, chown root:www-data site_name ...'
-		print 'dodo, chmod 0770 fqdn ...'
-		print 'dodo, create user site_name_clean'
-		#	create_system_user(), add www-data as primary group???, for sftp editing capabilities?
-		print 'dodo, set www-data as primary group for user site_name_clean'
-		print 'dodo, get nginx,apache,php configs from github'
-		print 'dodo, replace default.tld with site_name and www-default-tld with site_name_clean, inside confs'
-	
-		restart_servers()
-		print color.light_green+site_name+color.default+' is now created and enabled, waiting for your scripts to be executed '
-		print
 
 # enable_site()
 # actions:
@@ -165,17 +170,6 @@ def delete_site():
 	print color.light_red+site_name+color.default+' is now deleted'
 	print
 
-
-# restart webservers (apache/nginx/php-fpm)
-def restart_servers():
-	print
-	print 'Restarting nginx ...'
-	print os.popen("systemctl reload nginx").read()
-	print 'Restarting apache ...'
-	print os.popen("systemctl reload apache2").read()
-	print 'Restarting php-fpm ...'
-	print os.popen("systemctl reload php7.0-fpm").read()
-	
 
 
 # list of selectable available sites  	
