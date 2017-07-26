@@ -101,9 +101,9 @@ class Manage:
 		print color.light_yellow		
 		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*.conf'])
 		print color.default
-		exit(0)		
-		
 		print 'Creating the storage tree for %s ...' %(site_name)
+		
+		exit(0)
 		
 		print 'dodo, chown root:www-data site_name ...'
 		print 'dodo, chmod 0770 fqdn ...'
