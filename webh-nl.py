@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import glob, os, sys, shutil, subprocess
+import glob, os, sys, shutil, subprocess, re
 
 info = """
 --------------------------------------------------------
@@ -18,8 +18,9 @@ info = """
                 ||     ||
 """
 
+
 ##################################################
-# menus
+# menu
 ##################################################
 class Menu:
 	main_menu_options = [
@@ -30,20 +31,21 @@ class Menu:
 		
 	# the start menu	
 	def start(self):
-		print color.light_yellow+50 * "-"+color.default
+		print color.light_yellow + 50 * '-'+color.default
 		for index, item in enumerate(self.main_menu_options):
 			print str(index+1)+'. '+item[0]
-		print color.light_yellow+50 * "-"+color.default
-		valid_selection = False
-		while valid_selection != True:
+		print color.light_yellow + 50 * '-'+color.default
+		test_valid_menu = True
+		while test_valid_menu == True:
 			try:
 				self.selection = input(">> [1-"+str(len(self.main_menu_options))+"]: ")
-				valid_selection = 1 <= self.selection <= len(self.main_menu_options)
-				if not valid_selection:
+				valid_menu_option = 1 <= self.selection <= len(self.main_menu_options)
+				if not valid_menu_option:
 					raise Exception() 
+				test_valid_menu = False
 			except KeyboardInterrupt:
 				Manage().exit()
-			except :
+			except:
 				print 'Invalid option, try again'
 		try :
 			func = 'Manage().'+self.main_menu_options[self.selection-1][1]
@@ -64,14 +66,15 @@ class Manage:
 	sites_config_path = '/etc/www/'
 	sites_storage_path = '/var/www/'
 	
-	#def is_valid_hostname(hostname):
-#    if len(hostname) > 255:
-#        return False
-#    if hostname[-1] == ".":
-#        hostname = hostname[:-1] # strip exactly one dot from the right, if present
-#    allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
-#    return all(allowed.match(x) for x in hostname.split("."))
-    
+	#valid_fqdn();
+	def valid_fqdn(self):
+		pattern = re.compile(
+			r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|'
+			r'([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|'
+			r'([a-zA-Z0-9][-_.a-zA-Z0-9]{0,61}[a-zA-Z0-9]))\.'
+			r'([a-zA-Z]{2,13}|[a-zA-Z0-9-]{2,30}.[a-zA-Z]{2,3})$'
+		)
+		return pattern.match(self.site_name)
 	#exit()
 	def exit(self):
 		print
@@ -88,23 +91,40 @@ class Manage:
 	# new()
 	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
 	def new(self):
-		print color.light_yellow+50 * "-"+color.default
+		print color.light_yellow + 50 * '-'+color.default
 		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
-		self.site_name = raw_input(">> [FQDN]: ")
+		
+		test_valid_fqdn = True
+		while test_valid_fqdn == True:
+			try:
+				import readline
+				self.site_name = raw_input(">> [FQDN]: ")
+				if len(self.site_name) == 0:
+					raise ValueError()
+				if not self.valid_fqdn():
+					raise Exception()
+				test_valid_fqdn = False	
+			except KeyboardInterrupt:
+				self.exit()
+			except ValueError:
+				Menu().start()
+			except:
+				print 'Invalid FQDN, try again'
+
 		self.site_name_have_www = self.site_name.split('www.')[0] == ''
 		if self.site_name_have_www:
 			self.site_name = self.site_name[4:]
 		self.site_user = 'www-'+self.site_name.replace('.','-')
 		
-		print color.light_yellow+50 * "-"+color.default
+		print color.light_yellow + 50 * '-'+color.default
 		print 'Creating the system user for '+self.site_name+' ...'+color.light_yellow
 		try:
 			subprocess.check_call(['useradd','-r',self.site_user])
-			subprocess.check_call(['usermod','-G','www-data',self.site_user])
 			subprocess.check_call(['usermod','-g','www-data',self.site_user])
-		except :
+			subprocess.check_call(['groupdel',self.site_user])
+		except:
 			pass
-		print os.popen('getent group | grep '+self.site_user).read()+color.default		
+		print os.popen('cat /etc/passwd | grep '+self.site_user).read()+color.default		
 
 		print 'Creating the config files for '+self.site_name+' ...'+color.light_yellow
 		for file in glob.glob("files/vhosts/fqdn-*.conf"):
@@ -116,11 +136,10 @@ class Manage:
 		
 		print 'Creating the storage tree for '+self.site_name+' ...'+color.light_yellow
 		try:
-			os.makedirs(self.sites_storage_path+self.site_name+'/public',0770)
-			os.makedirs(self.sites_storage_path+self.site_name+'/logs',0770)
+			os.makedirs(self.sites_storage_path+self.site_name+'/public')
+			os.makedirs(self.sites_storage_path+self.site_name+'/logs')
 		except Exception as e:
 			pass
-		subprocess.call(['chown','-R','root:www-data',self.sites_storage_path+self.site_name])	
 		subprocess.call(['find','/var/www/'+self.site_name])
 		print color.default
 		self.restart_servers()
@@ -129,7 +148,7 @@ class Manage:
 	# enable()
 	# actions: move /etc/www/site_name*.conf.disabled to /etc/www/site_name*.conf, restart services
 	def enable(self):
-		print 50 * "-"+color.light_yellow
+		print 50 * '-'+color.light_yellow
 		os.chdir(self.sites_config_path)
 		for file in glob.glob(self.site_name+"-*.conf.disabled"):
 			os.rename(file,file.replace('.disabled',''))
@@ -140,7 +159,7 @@ class Manage:
 	# disable() 		
 	# actions: move /etc/www/site_name*.conf to /etc/www/site_name*.conf.disabled, restart services
 	def disable(self):
-		print 50 * "-"+color.light_yellow
+		print color.light_yellow + 50 * '-'
 		os.chdir(self.sites_config_path)
 		for file in glob.glob(self.site_name+"-*.conf"):
 			os.rename(file,file.replace('.conf','.conf.disabled'))
@@ -151,25 +170,25 @@ class Manage:
 	# delete ()		
 	# actions: remove /etc/www/site_name*, remove -R /var/www/site_name, remove site_user user, restart services
 	def delete(self):
-		print 50 * "-"+color.light_yellow
+		print color.light_yellow + 50 * '-'
+		print 'Removing config files ...'
 		os.chdir(self.sites_config_path)
 		for file in glob.glob(self.site_name+"*"):
 			try:
 				os.remove(file)
 			except:
 				pass
+		print 'Removing storage files ...'		
 		try:	
 			shutil.rmtree(self.sites_storage_path+self.site_name)
 		except:
 			pass
-		
+		print 'Removing '+self.site_user+' system user ...'
 		try:
 			subprocess.call(['userdel',self.site_user])
-			subprocess.call(['groupdel',self.site_user])
 		except Exception as e:
 			pass
 			print e
-		print os.popen('getent group | grep '+self.site_user).read()+color.default	
 		print color.default
 		self.restart_servers()
 		
@@ -200,24 +219,59 @@ class Manage:
 				print color.light_green+str(index+1)+'. '+site+(' '+(39-len(site))*'-')+'ENABLED'+color.default
 			else:
 				print color.light_red+str(index+1)+'. '+site+(' '+(38-len(site))*'-')+'DISABLED'+color.default
-		print color.light_blue+50*'-'+color.default
-		selected_site = input(">> [1-"+str(self.total_available_sites)+"]: ")
+		print color.light_blue + 50*'-'+color.default
 		
-		if selected_site <= self.total_available_sites:
-			self.site_name = self.all_sites[selected_site-1]
-			print color.light_yellow+self.site_name+'selected'+color.default
-			if self.site_name in self.disabled_sites:
-				action = raw_input(">> [enable/delete]:")
-				if action == 'enable':
-					self.enable()
-				elif action == 'delete':
-					self.delete()
-			else:
-				action = raw_input(">> [disable/delete]:")
-				if action == 'disable':
-					self.disable()
-				elif action == 'delete':
-					self.delete()
+		test_valid_selected_site = True
+		while test_valid_selected_site == True:
+			try:
+				import readline
+				selected_site = input(">> [1-"+str(self.total_available_sites)+"]: ")
+				valid_menu_option = 1 <= selected_site <= self.total_available_sites
+				if not valid_menu_option:
+					raise Exception()
+				test_valid_selected_site = False	
+			except SyntaxError:
+				Menu().start()
+			except KeyboardInterrupt:
+				self.exit()
+			except:
+				print 'Invalid option, try again'
+		
+		self.site_name = self.all_sites[selected_site-1]
+		self.site_user = 'www-'+self.site_name.replace('.','-')
+		print color.light_yellow + 50 * '-'
+		print self.site_name+' selected\n'+color.default
+		
+		test_valid_action = True
+		while test_valid_action == True:
+			try:
+				if self.site_name in self.disabled_sites:
+					action = raw_input(">> [enable/delete]:")
+					if action == 'enable':
+						self.enable()
+					elif action == 'delete':
+						self.delete()
+					elif action == '':
+						raise ValueError()
+					else:
+						raise Exception()
+				else:
+					action = raw_input(">> [disable/delete]:")
+					if action == 'disable':
+						self.disable()
+					elif action == 'delete':
+						self.delete()
+					elif action == '':
+						raise ValueError()
+					else:
+						raise Exception()
+				test_valid_action = False
+			except KeyboardInterrupt:
+				self.exit()	
+			except ValueError:
+				self.sites()			
+			except:
+				print 'Invalid action, try again'
 
 
 
