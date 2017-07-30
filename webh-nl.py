@@ -199,13 +199,11 @@ class Manage:
 			subprocess.call(['userdel',self.site_user])
 		except Exception as e:
 			pass
-			print e
 		print 'Removing '+self.site_name+' Let\'s Encrypt certificate ...'
 		try:
 			subprocess.call(['certbot-auto','delete','--cert-name',self.site_name])
 		except Exception as e:
 			pass
-			print e	
 		print color.default
 		self.restart_servers()
 		
