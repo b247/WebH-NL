@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import glob, os, sys, shutil, subprocess, re
+import glob, os, sys, shutil, subprocess, re, pexpect
 
 info = """
 --------------------------------------------------------
@@ -92,7 +92,7 @@ class Manage:
 	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
 	def new(self):
 		print color.light_yellow + 50 * '-'+color.default
-		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, without www'
+		print 'Enter the Fully Qualified Domain Name (FQDN) for the site, ex: example.com, demo.example.com'
 		
 		test_valid_fqdn = True
 		while test_valid_fqdn == True:
@@ -141,6 +141,12 @@ class Manage:
 		except Exception as e:
 			pass
 		subprocess.call(['find','/var/www/'+self.site_name])
+		
+		print color.default
+		print 'Configuring Let\'s Encrypt for '+self.site_name+' ...'+color.light_yellow
+		certbot = pexpect.spawn ('certbot-auto certonly -a webroot --webroot-path=/var/www/'+self.site_name+'/public -d '+self.site_name)
+		certbot.interact() 
+
 		print color.default
 		self.restart_servers()
 		
