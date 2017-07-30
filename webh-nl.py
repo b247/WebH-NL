@@ -80,13 +80,14 @@ class Manage:
 		print
 		sys.exit(0)
 	# restart webservers (apache/nginx/php-fpm)
-	def restart_servers(self):
+	def restart_servers(self,reverttomenu = True):
 		print 'Reloading nginx, apache2 and php-fpm servers ...'+color.light_yellow
 		subprocess.call(['systemctl','reload','nginx'])
 		subprocess.call(['systemctl','reload','apache2'])
 		subprocess.call(['systemctl','reload','php7.0-fpm'])
 		print color.default+'\nDone'
-		Menu().start()
+		if reverttomenu == True:
+			Menu().start()
 		
 	# new()
 	# actions: create /etc/www/site_name*, create /var/www/site_name folder, create site_name_clean system user, restart services
@@ -131,9 +132,10 @@ class Manage:
 			self.server_type_ext = file.split('fqdn')[1]
 			shutil.copyfile(file, self.sites_config_path+self.site_name+self.server_type_ext)
 			os.popen("sed -i 's/{SITE_NAME}/"+self.site_name+"/g;s/{SITE_USER}/"+self.site_user+"/g' "+self.sites_config_path+self.site_name+self.server_type_ext)
-		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*.conf'])
+		shutil.move('/etc/www/'+self.site_name+'-nginx-ssl.conf', '/etc/www/'+self.site_name+'-nginx.ssl')		
+		subprocess.call(['find','/etc/www/','-name',self.site_name+'-*'])
+
 		print color.default
-		
 		print 'Creating the storage tree for '+self.site_name+' ...'+color.light_yellow
 		try:
 			os.makedirs(self.sites_storage_path+self.site_name+'/public')
@@ -143,10 +145,13 @@ class Manage:
 		subprocess.call(['find','/var/www/'+self.site_name])
 		
 		print color.default
+		self.restart_servers(False)		
+		
+		print color.default
 		print 'Configuring Let\'s Encrypt for '+self.site_name+' ...'+color.light_yellow
 		certbot = pexpect.spawn ('certbot-auto certonly -a webroot --webroot-path=/var/www/'+self.site_name+'/public -d '+self.site_name)
-		certbot.interact() 
-
+		certbot.interact()
+		shutil.move('/etc/www/'+self.site_name+'-nginx.ssl', '/etc/www/'+self.site_name+'-nginx.conf')
 		print color.default
 		self.restart_servers()
 		
@@ -195,6 +200,12 @@ class Manage:
 		except Exception as e:
 			pass
 			print e
+		print 'Removing '+self.site_name+' Let\'s Encrypt certificate ...'
+		try:
+			subprocess.call(['certbot-auto','delete','--cert-name',self.site_name])
+		except Exception as e:
+			pass
+			print e	
 		print color.default
 		self.restart_servers()
 		
