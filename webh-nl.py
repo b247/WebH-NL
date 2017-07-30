@@ -84,7 +84,7 @@ class Manage:
 		print 'Reloading nginx, apache2 and php-fpm servers ...'+color.light_yellow
 		subprocess.call(['systemctl','reload','nginx'])
 		subprocess.call(['systemctl','reload','apache2'])
-		subprocess.call(['systemctl','reload','php7.0-fpm'])
+		subprocess.call(['systemctl','restart','php7.0-fpm'])
 		print color.default+'\nDone'
 		if reverttomenu == True:
 			Menu().start()
