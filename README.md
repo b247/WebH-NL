@@ -18,9 +18,9 @@ sudo apt-get install php-memcached
 
 
 
-## Apache remoteip.conf
+## Apache remoteip.conf ()
 
-cp WebH-NL .... > /etc/apache2/confs-available/remoteip.conf && sudo a2enconf remoteip
+cp WebH-NL .... >remoteip.conf  /etc/apache2/mods-available/remoteip.conf
 
 apache2.conf: - LogFormat %h >> %a
 
