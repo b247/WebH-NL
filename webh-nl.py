@@ -163,7 +163,7 @@ class Manage:
 		os.chdir(self.sites_config_path)
 		for file in glob.glob(self.site_name+"-*.conf.disabled"):
 			os.rename(file,file.replace('.disabled',''))
-		subprocess.call(['find','/var/www/'+self.site_name+'-*.conf'])
+		subprocess.call(['find','/etc/www/'+self.site_name+'-*.conf'])
 		print color.default
 		self.restart_servers()
 			
@@ -174,7 +174,7 @@ class Manage:
 		os.chdir(self.sites_config_path)
 		for file in glob.glob(self.site_name+"-*.conf"):
 			os.rename(file,file.replace('.conf','.conf.disabled'))
-		subprocess.call(['find','/var/www/'+self.site_name+'-*.conf'])
+		subprocess.call(['find','/etc/www/'+self.site_name+'-*.conf.disabled'])
 		print color.default
 		self.restart_servers()
 
