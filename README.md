@@ -1,3 +1,5 @@
 # WebH-NL
 
-This is a work in progress ...
+Server files and webh-nl python helper for the WebH-NL project
+
+[link text itself]: https://www.b247.eu.org/WebH-NL
