@@ -140,6 +140,8 @@ class Manage:
 		try:
 			os.makedirs(self.sites_storage_path+self.site_name+'/public')
 			os.makedirs(self.sites_storage_path+self.site_name+'/logs')
+			os.makedirs(self.sites_storage_path+self.site_name+'/nodejs')
+			os.makedirs(self.sites_storage_path+self.site_name+'/tmp')
 		except Exception as e:
 			pass
 		subprocess.call(['find','/var/www/'+self.site_name])
