@@ -75,4 +75,4 @@ openssl pkcs12 -passin pass:$CLIENT_PASS -passout pass:$CLIENT_PASS -export -clc
 echo "Your client certificate $CLIENT_CERT_NAME.p12 for $SITE_NAME access.\
 <br/>The certificate must be imported to browser(s) in order to gain access to $SITE_NAME \
 <br/>Password for the certificate import is: CLIENT_PASS" | \
- mail -A $SITE_PATH/certs/users/$CLIENT_CERT_NAME.p12  -s "$SITE_NAME personal certificate" $CLIENT_EMAIL
+ mail -A $SITE_PATH/CA/certs/users/$CLIENT_CERT_NAME.p12  -s "$SITE_NAME personal certificate" $CLIENT_EMAIL
